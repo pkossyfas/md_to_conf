@@ -20,7 +20,6 @@ import mimetypes
 import codecs
 import argparse
 import urllib
-import webbrowser
 import requests
 import markdown
 
@@ -34,6 +33,7 @@ PARSER = argparse.ArgumentParser()
 PARSER.add_argument("markdownFile", help="Full path of the markdown file to convert and upload.")
 PARSER.add_argument('spacekey',
                     help="Confluence Space key for the page. If omitted, will use user space.")
+PARSER.add_argument('-t', '--title', help='Page title', default='Test page')                   
 PARSER.add_argument('-u', '--username', help='Confluence username if $CONFLUENCE_USERNAME not set.')
 PARSER.add_argument('-p', '--apikey', help='Confluence API key if $CONFLUENCE_API_KEY not set.')
 PARSER.add_argument('-o', '--orgname',
@@ -43,12 +43,10 @@ PARSER.add_argument('-o', '--orgname',
                          'e.g. https://XXX')
 PARSER.add_argument('-a', '--ancestor',
                     help='Parent page under which page will be created or moved.')
-PARSER.add_argument('-t', '--attachment', nargs='+',
+PARSER.add_argument('-A', '--attachment', nargs='+',
                     help='Attachment(s) to upload to page. Paths relative to the markdown file.')
 PARSER.add_argument('-c', '--contents', action='store_true', default=False,
                     help='Use this option to generate a contents page.')
-PARSER.add_argument('-g', '--nogo', action='store_true', default=False,
-                    help='Use this option to skip navigation after upload.')
 PARSER.add_argument('-n', '--nossl', action='store_true', default=False,
                     help='Use this option if NOT using SSL. Will use HTTP instead of HTTPS.')
 PARSER.add_argument('-d', '--delete', action='store_true', default=False,
@@ -68,6 +66,7 @@ try:
 
     MARKDOWN_FILE = ARGS.markdownFile
     SPACE_KEY = ARGS.spacekey
+    PAGE_TITLE = ARGS.title
     USERNAME = os.getenv('CONFLUENCE_USERNAME', ARGS.username)
     API_KEY = os.getenv('CONFLUENCE_API_KEY', ARGS.apikey)
     ORGNAME = os.getenv('CONFLUENCE_ORGNAME', ARGS.orgname)
@@ -76,7 +75,6 @@ try:
     DELETE = ARGS.delete
     SIMULATE = ARGS.simulate
     ATTACHMENTS = ARGS.attachment
-    GO_TO_PAGE = not ARGS.nogo
     CONTENTS = ARGS.contents
 
     if USERNAME is None:
@@ -156,7 +154,6 @@ def convert_code_block(html):
             html = html.replace(tag, conf_ml)
 
     return html
-
 
 def convert_info_macros(html):
     """
@@ -254,7 +251,6 @@ def upper_chars(string, indices):
     upper_string = "".join(c.upper() if i in indices else c for i, c in enumerate(string))
     return upper_string
 
-
 def process_refs(html):
     """
     Process references
@@ -282,7 +278,6 @@ def process_refs(html):
             html = html.replace('[^%s]' % ref_id, superscript)
 
     return html
-
 
 def get_page(title):
     """
@@ -327,7 +322,6 @@ def get_page(title):
         return page
 
     return False
-
 
 # Scan for images and upload as attachments if found
 def add_images(page_id, html):
@@ -445,9 +439,6 @@ def create_page(title, body, ancestors):
         if img_check or ATTACHMENTS:
             LOGGER.info('\tAttachments found, update procedure called.')
             update_page(page_id, title, body, version, ancestors, ATTACHMENTS)
-        else:
-            if GO_TO_PAGE:
-                webbrowser.open(link)
     else:
         LOGGER.error('Could not create page.')
         sys.exit(1)
@@ -527,8 +518,6 @@ def update_page(page_id, title, body, version, ancestors, attachments):
 
         LOGGER.info("Page updated successfully.")
         LOGGER.info('URL: %s', link)
-        if GO_TO_PAGE:
-            webbrowser.open(link)
     else:
         LOGGER.error("Page could not be updated.")
 
@@ -614,9 +603,11 @@ def main():
     LOGGER.info('Markdown file:\t%s', MARKDOWN_FILE)
     LOGGER.info('Space Key:\t%s', SPACE_KEY)
 
-    with open(MARKDOWN_FILE, 'r') as mdfile:
-        title = mdfile.readline().lstrip('#').strip()
-        mdfile.seek(0)
+    # with open(MARKDOWN_FILE, 'r') as mdfile:
+    #     title = mdfile.readline().lstrip('#').strip()
+    #     mdfile.seek(0)
+
+    title = PAGE_TITLE
 
     LOGGER.info('Title:\t\t%s', title)
 
