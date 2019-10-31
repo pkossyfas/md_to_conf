@@ -1,8 +1,13 @@
 FROM python:3
 
-ADD md2conf.py /
-ADD requirements.txt /
+MAINTAINER pkossyfas
 
+# Create app directory
+WORKDIR /app
+
+COPY ./ /app
+
+# Install app dependencies
 RUN pip3 install -r requirements.txt
 
-CMD [ "python", "md2conf.py"]
+CMD [ "python3", "md2conf.py", "-h"]
